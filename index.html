@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title>Keyboard Navigator</title>
+</head>
+<body>
+	<style type="text/css" media="screen">
+		.container{
+			display: flex;
+			flex-wrap: wrap;
+			width: 15em;
+			font-family: Arial;
+		}
+		.shape{
+			border-radius: 1em;
+			border: 2px solid lightgray;
+			height: 5em;
+			width: 5em;
+			margin: 1em;
+			display: flex;
+			align-items: center;
+			justify-content: center;
+		}
+		.highlighted{
+			background-color: lightblue;
+		}
+		.shape-B{
+			/*transform: translateX(-2em);*/
+		}
+	</style>
+	<div class="container"></div>
+	<script>
+		function renderShape(num){
+			let charCode = 65;
+			const container = document.querySelector(".container");
+			if (container) {
+				for(let i = 0; i < num; i++){
+					const div = document.createElement("div");
+					div.classList.add("shape");
+					const char = String.fromCharCode(charCode + i);
+					div.textContent = char;
+					div.classList.add(`shape-${char}`);
+					container.appendChild(div);
+				}
+			}
+			container.addEventListener('click', highlightedDOM);
+		}
+
+		function highlightedDOM(e){
+			if (e.target.classList.contains("shape")) {
+				const prevHighlighted = document.querySelector(".highlighted");
+				if (prevHighlighted) prevHighlighted.classList.remove("highlighted");
+				e.target.classList.add("highlighted");
+			}
+		}
+
+		class KeyboardNavigator{
+			constructor(className){
+				this.className = className;
+				// I J K L
+				this.keys = new Set([105, 106, 107, 108]);
+				this._init();
+				this.defaultDOM = document.querySelector(`.${className}`);
+			}
+
+			_init(){
+				document.addEventListener("keypress", e => {
+					if (this.keys.has(e.keyCode)) this.move(e.keyCode);
+				})
+			}
+
+			move(keyCode){
+				const currDOM = document.querySelector(".highlighted") || this.defaultDOM;
+				if (!currDOM.classList.contains("highlighted")) {
+					currDOM.classList.add("highlighted");
+					return;
+				}
+				const nextDOM = this.findNextDOM(currDOM, keyCode);
+				// console.log(currDOM.textContent, nextDOM ? nextDOM.textContent : "null", currDOM.classList.contains("highlighted"));
+				if (nextDOM) {
+					currDOM.classList.remove("highlighted");
+					nextDOM.classList.add("highlighted");
+				}
+			}
+
+			findNextDOM(currDOM, keyCode){
+				const currPosition = currDOM.getBoundingClientRect();
+				const allDOMs = document.querySelectorAll(`.${this.className}`);
+				// const allPositions = allDOMs.map(el => el.getBoundingClientRect());
+				let minDistance = 2 ** 32, idx;
+				switch(keyCode){
+					case 105:
+						allDOMs.forEach((el, i) => {
+							const p = el.getBoundingClientRect();
+							if (currDOM != el && p.left <= currPosition.right && p.right >= currPosition.left && p.bottom < currPosition.bottom) {
+								if (Math.abs(currPosition.top - p.bottom) < minDistance) {
+									minDistance = Math.abs(currPosition.top - p.bottom);
+									idx = i
+								}
+							}
+						})
+						break;
+					case 106:
+						allDOMs.forEach((el, i) => {
+							const p = el.getBoundingClientRect();
+							if (currDOM != el && p.top <= currPosition.bottom && p.bottom >= currPosition.top && p.left < currPosition.left) {
+								if (Math.abs(currPosition.left - p.right) < minDistance) {
+									minDistance = Math.abs(currPosition.left - p.right);
+									idx = i;
+								}
+							}
+						})
+						break;
+					case 107:
+						allDOMs.forEach((el, i) => {
+							const p = el.getBoundingClientRect();
+							if (currDOM != el && p.left <= currPosition.right && p.right >= currPosition.left && p.top > currPosition.top) {
+								if (Math.abs(currPosition.bottom - p.top) < minDistance) {
+									minDistance = Math.abs(currPosition.bottom - p.top);
+									idx = i;
+								}
+							}
+						})
+						break;
+					case 108:
+						allDOMs.forEach((el, i) => {
+							const p = el.getBoundingClientRect();
+							if (currDOM != el && p.top <= currPosition.bottom && p.bottom >= currPosition.top && p.right > currPosition.right) {
+								if (Math.abs(currPosition.right - p.left) < minDistance) {
+									minDistance = Math.abs(currPosition.right - p.left);
+									idx = i;
+								}
+							}
+						})
+						break;
+					default:
+						return;
+				}
+				return idx >= 0 ? allDOMs[idx] : null;
+			}
+		}
+
+		(function(){
+			renderShape(4);
+			new KeyboardNavigator("shape");
+		})()	
+	</script>
+</body>
+</html>
